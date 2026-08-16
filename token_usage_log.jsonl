@@ -1,0 +1,4 @@
+{"timestamp": "2026-08-03T23:26:45.308330", "agent": "flight_recommendation", "prompt_tokens": 156, "response_tokens": 90, "total_tokens": 246, "was_cached": false}
+{"timestamp": "2026-08-04T00:07:11.257768", "agent": "flight_recommendation", "prompt_tokens": 287, "response_tokens": 119, "total_tokens": 406, "was_cached": false}
+{"timestamp": "2026-08-07T19:26:20.606627", "agent": "date_explain", "prompt_tokens": 107, "response_tokens": 68, "total_tokens": 175, "was_cached": false}
+{"timestamp": "2026-08-08T21:59:40.297331", "agent": "date_explain", "prompt_tokens": 109, "response_tokens": 80, "total_tokens": 189, "was_cached": false}

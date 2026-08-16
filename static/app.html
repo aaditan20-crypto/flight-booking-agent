@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flight Booking Assistant</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0f1115;
+    color: #e6e6e6;
+    margin: 0;
+    padding: 40px 20px;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  p.subtitle { color: #9ca3af; margin-top: 0; margin-bottom: 16px; }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: flex-start; }
+  .top-actions { display: flex; gap: 8px; }
+  .secondary-btn { background: #262a33; padding: 8px 16px; font-size: 13px; }
+  .secondary-btn:hover { background: #31353f; }
+  .logout-btn { background: #374151; padding: 8px 16px; font-size: 13px; }
+  .logout-btn:hover { background: #4b5563; }
+
+  #tokenTracker {
+    display: none; background: #1a1d24; border-radius: 8px; padding: 10px 16px;
+    margin-bottom: 16px; font-size: 13px; color: #9ca3af; gap: 16px;
+  }
+
+  #recentSearches { display: none; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .search-chip {
+    background: #1a1d24; border: 1px solid #2a2e37; color: #c7d2fe;
+    padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer;
+  }
+  .search-chip:hover { border-color: #4f46e5; }
+
+  .form-card {
+    background: #1a1d24; border-radius: 12px; padding: 24px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .form-card label { font-size: 13px; color: #9ca3af; display: block; margin-bottom: 6px; }
+  .form-card input, .form-card select {
+    width: 100%; padding: 10px 12px; background: #0f1115;
+    border: 1px solid #2a2e37; border-radius: 8px; color: #e6e6e6; font-size: 14px;
+  }
+  .form-card select { cursor: pointer; }
+  .full-width { grid-column: 1 / -1; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; grid-column: 1 / -1; }
+  .checkbox-row input { width: auto; }
+  .checkbox-row label { margin: 0; color: #e6e6e6; font-size: 14px; }
+  #returnFields { display: none; grid-column: 1 / -1; display: none; grid-template-columns: 1fr 1fr; gap: 16px; }
+  #returnFields.show { display: grid; }
+
+  button {
+    padding: 12px; background: #4f46e5; color: white; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: #4338ca; }
+  button:disabled { background: #374151; cursor: not-allowed; }
+  .submit-btn { grid-column: 1 / -1; margin-top: 8px; padding: 12px; font-size: 15px; }
+
+  #agentLog {
+    display: none; background: #0f1115; border: 1px solid #2a2e37; border-radius: 8px;
+    padding: 12px 16px; margin-top: 16px; font-family: monospace; font-size: 12px;
+    color: #6ee7b7; max-height: 160px; overflow-y: auto;
+  }
+  #agentLog div { padding: 2px 0; opacity: 0; animation: fadeIn 0.2s forwards; }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .section-heading { font-size: 15px; font-weight: 600; margin: 26px 0 10px 0; color: #c7d2fe; }
+
+  #sliderSection {
+    display: none; background: #1a1d24; border-radius: 12px; padding: 18px 24px; margin-top: 24px;
+  }
+  #sliderSection label { font-size: 13px; color: #9ca3af; }
+  #sliderSection input[type=range] { width: 100%; margin-top: 10px; accent-color: #4f46e5; }
+  .slider-labels { display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+  #filterNote {
+    display: none; background: rgba(79, 70, 229, 0.1); border: 1px solid rgba(79, 70, 229, 0.3);
+    border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #a5b4fc; margin-top: 14px;
+  }
+
+  .cards-block { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .date-card {
+    background: #1a1d24; border: 1px solid #2a2e37; border-radius: 10px;
+    padding: 16px 18px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .date-card:hover { border-color: #4f46e5; }
+  .date-card.best { border-color: #4f46e5; background: rgba(79, 70, 229, 0.08); }
+  .date-card.no-flights { opacity: 0.5; cursor: default; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; }
+  .card-header .date-label { font-weight: 600; font-size: 15px; }
+  .badge { background: #4f46e5; color: white; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+  .cache-tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px;
+    background: rgba(251, 191, 36, 0.15); color: #fbbf24; margin-left: 6px;
+  }
+  .card-summary { display: flex; gap: 18px; margin-top: 8px; font-size: 13px; color: #9ca3af; }
+  .risk-pill { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .risk-low { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .risk-mid { background: rgba(234,179,8,0.15); color: #facc15; }
+  .risk-high { background: rgba(239,68,68,0.15); color: #f87171; }
+
+  .card-details { display: none; margin-top: 14px; border-top: 1px solid #2a2e37; padding-top: 14px; }
+  .date-card.expanded .card-details { display: block; }
+  .flight-row {
+    display: flex; justify-content: space-between; align-items: center; font-size: 13px;
+    padding: 8px 0; border-bottom: 1px solid #22252c;
+  }
+  .flight-info { display: flex; flex-direction: column; gap: 2px; }
+  .flight-airline { font-weight: 600; }
+  .flight-meta { color: #9ca3af; font-size: 12px; }
+  .flight-right { display: flex; align-items: center; gap: 10px; }
+  .flight-price { font-weight: 600; }
+  .book-btn { padding: 6px 12px; font-size: 12px; background: #059669; }
+  .book-btn:hover { background: #047857; }
+  .no-flights-msg { font-size: 13px; color: #6b7280; padding: 10px 0; }
+
+  .explain-btn { margin-top: 12px; background: #262a33; color: #c7d2fe; font-size: 12px; padding: 8px 14px; }
+  .explain-btn:hover { background: #31353f; }
+  .explanation-box {
+    margin-top: 10px; background: #0f1115; border-left: 3px solid #4f46e5;
+    padding: 10px 14px; font-size: 13px; line-height: 1.5; color: #d1d5db; border-radius: 6px;
+  }
+  .loading { color: #9ca3af; font-size: 14px; margin-top: 20px; }
+  .error { color: #f87171; font-size: 13px; margin-top: 8px; }
+
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: #1a1d24; border: 1px solid #2a2e37; border-radius: 14px;
+    padding: 30px; max-width: 400px; width: 90%; text-align: center; max-height: 80vh; overflow-y: auto;
+  }
+  .modal-box .checkmark { font-size: 40px; margin-bottom: 10px; }
+  .modal-box h2 { margin: 0 0 6px 0; font-size: 18px; }
+  .modal-box p { color: #9ca3af; font-size: 13px; margin: 4px 0; }
+  .modal-ref {
+    background: #0f1115; border-radius: 8px; padding: 10px; font-family: monospace;
+    font-size: 15px; letter-spacing: 1px; margin: 14px 0; color: #4ade80;
+  }
+  .modal-close-btn { margin-top: 10px; width: 100%; }
+
+  .booking-item {
+    background: #0f1115; border: 1px solid #2a2e37; border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 10px; text-align: left; font-size: 13px;
+  }
+  .booking-item .ref { color: #4ade80; font-family: monospace; font-size: 12px; }
+  .empty-msg { color: #6b7280; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <div>
+      <h1>✈️ Flight Booking Assistant</h1>
+      <p class="subtitle">Weather-aware, price-aware flight recommendations</p>
+    </div>
+    <div class="top-actions">
+      <button class="secondary-btn" onclick="openBookings()">My Bookings</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="tokenTracker">
+    <span>🪙 <strong id="tokenCount">0</strong> tokens used this session</span>
+    <span>🤖 <strong id="callCount">0</strong> AI calls made</span>
+  </div>
+
+  <div id="recentSearches"></div>
+
+  <div class="form-card">
+    <div>
+      <label>Origin (IATA code)</label>
+      <input id="origin" value="BLR" />
+    </div>
+    <div>
+      <label>Destination (IATA code)</label>
+      <input id="destination" value="GOI" />
+    </div>
+    <div>
+      <label>Departure — start date</label>
+      <input id="start_date" type="date" />
+    </div>
+    <div>
+      <label>Departure — end date</label>
+      <input id="end_date" type="date" />
+    </div>
+    <div class="full-width">
+      <label>Preferred Airline (optional)</label>
+      <select id="preferred_airline">
+        <option value="Any">Any airline</option>
+        <option value="IndiGo">IndiGo</option>
+        <option value="Air India">Air India</option>
+        <option value="SpiceJet">SpiceJet</option>
+        <option value="Vistara">Vistara</option>
+        <option value="Akasa Air">Akasa Air</option>
+      </select>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="roundTrip" onchange="toggleReturnFields()" />
+      <label for="roundTrip">Round trip</label>
+    </div>
+    <div id="returnFields">
+      <div>
+        <label>Return — start date</label>
+        <input id="return_start_date" type="date" />
+      </div>
+      <div>
+        <label>Return — end date</label>
+        <input id="return_end_date" type="date" />
+      </div>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="planTrip()">Find Flights</button>
+  </div>
+
+  <div id="agentLog"></div>
+  <div id="filterNote"></div>
+
+  <div id="sliderSection">
+    <label>Prioritize: <strong id="sliderLabel">Balanced</strong></label>
+    <input type="range" id="weightSlider" min="0" max="100" value="50" oninput="recomputeBest()" />
+    <div class="slider-labels"><span>💰 Cheaper</span><span>🛡️ Safer</span></div>
+  </div>
+
+  <div id="outboundHeading" class="section-heading" style="display:none;">Outbound flights</div>
+  <div id="outboundCards" class="cards-block"></div>
+
+  <div id="returnHeading" class="section-heading" style="display:none;">Return flights</div>
+  <div id="returnCards" class="cards-block"></div>
+
+  <div id="statusArea"></div>
+</div>
+
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal-box">
+    <div class="checkmark">✅</div>
+    <h2>Booking Confirmed!</h2>
+    <p id="modalRoute"></p>
+    <p id="modalFlightInfo"></p>
+    <div class="modal-ref" id="modalRef"></div>
+    <button class="modal-close-btn" onclick="closeModal()">Done</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bookingsModal">
+  <div class="modal-box">
+    <h2>My Bookings</h2>
+    <div id="bookingsList" style="margin-top:16px;"></div>
+    <button class="modal-close-btn" onclick="closeBookings()">Close</button>
+  </div>
+</div>
+
+<script>
+let tripDataOutbound = null;
+let tripDataReturn = null;
+let currentOrigin = "", currentDestination = "";
+
+// ---------- Recent searches (localStorage) ----------
+function loadRecentSearches() {
+  const raw = localStorage.getItem("recentSearches");
+  return raw ? JSON.parse(raw) : [];
+}
+
+function saveRecentSearch(entry) {
+  let searches = loadRecentSearches();
+  searches = searches.filter(s => !(s.origin === entry.origin && s.destination === entry.destination && s.start_date === entry.start_date));
+  searches.unshift(entry);
+  searches = searches.slice(0, 5);
+  localStorage.setItem("recentSearches", JSON.stringify(searches));
+  renderRecentSearches();
+}
+
+function renderRecentSearches() {
+  const container = document.getElementById("recentSearches");
+  const searches = loadRecentSearches();
+  if (searches.length === 0) {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "flex";
+  container.innerHTML = searches.map(s =>
+    `<span class="search-chip" onclick='fillFromChip(${JSON.stringify(s).replace(/'/g, "&#39;")})'>${s.origin} → ${s.destination} · ${s.start_date}</span>`
+  ).join("");
+}
+
+function fillFromChip(entry) {
+  document.getElementById("origin").value = entry.origin;
+  document.getElementById("destination").value = entry.destination;
+  document.getElementById("start_date").value = entry.start_date;
+  document.getElementById("end_date").value = entry.end_date;
+  planTrip();
+}
+
+// ---------- Round trip toggle ----------
+function toggleReturnFields() {
+  const checked = document.getElementById("roundTrip").checked;
+  document.getElementById("returnFields").classList.toggle("show", checked);
+}
+
+// ---------- Agent thinking animation ----------
+function dateRange(start, end) {
+  const dates = [];
+  let current = new Date(start);
+  const last = new Date(end);
+  while (current <= last) {
+    dates.push(current.toISOString().split("T")[0]);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
+
+function runAgentAnimation(dates, destination) {
+  const log = document.getElementById("agentLog");
+  log.style.display = "block";
+  log.innerHTML = "";
+
+  return new Promise((resolve) => {
+    let i = 0;
+    const steps = [];
+    dates.forEach(d => {
+      steps.push(`🔵 Weather Agent: checking ${destination} on ${d}...`);
+      steps.push(`🟢 Price Agent: checking flights for ${d}...`);
+    });
+    steps.push(`🧠 Orchestrator: merging results & scoring best date...`);
+
+    const interval = setInterval(() => {
+      if (i >= steps.length) {
+        clearInterval(interval);
+        resolve();
+        return;
+      }
+      const line = document.createElement("div");
+      line.textContent = steps[i];
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+      i++;
+    }, 180);
+  });
+}
+
+// ---------- Main search ----------
+async function planTrip() {
+  const btn = document.getElementById("submitBtn");
+  const statusArea = document.getElementById("statusArea");
+  const filterNote = document.getElementById("filterNote");
+  const origin = document.getElementById("origin").value.trim();
+  const destination = document.getElementById("destination").value.trim();
+  const start_date = document.getElementById("start_date").value;
+  const end_date = document.getElementById("end_date").value;
+  const preferred_airline = document.getElementById("preferred_airline").value;
+  const isRoundTrip = document.getElementById("roundTrip").checked;
+  const return_start_date = document.getElementById("return_start_date").value;
+  const return_end_date = document.getElementById("return_end_date").value;
+
+  if (!origin || !destination || !start_date || !end_date) {
+    statusArea.innerHTML = `<p class="error">Please fill in all fields.</p>`;
+    return;
+  }
+  if (isRoundTrip && (!return_start_date || !return_end_date)) {
+    statusArea.innerHTML = `<p class="error">Please fill in return dates, or uncheck Round trip.</p>`;
+    return;
+  }
+
+  currentOrigin = origin.toUpperCase();
+  currentDestination = destination.toUpperCase();
+
+  saveRecentSearch({ origin: currentOrigin, destination: currentDestination, start_date, end_date });
+
+  btn.disabled = true;
+  btn.textContent = "Searching...";
+  statusArea.innerHTML = "";
+  filterNote.style.display = "none";
+  document.getElementById("outboundCards").innerHTML = "";
+  document.getElementById("returnCards").innerHTML = "";
+  document.getElementById("outboundHeading").style.display = "none";
+  document.getElementById("returnHeading").style.display = "none";
+  document.getElementById("sliderSection").style.display = "none";
+
+  try {
+    const outboundDates = dateRange(start_date, end_date);
+    const animationPromise = runAgentAnimation(outboundDates, currentDestination);
+    const fetchPromise = fetch("/api/plan-trip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ origin, destination, start_date, end_date, preferred_airline })
+    });
+
+    const [, res] = await Promise.all([animationPromise, fetchPromise]);
+
+    if (res.status === 401) { window.location.href = "/login.html"; return; }
+    const data = await res.json();
+    tripDataOutbound = data.comparison;
+
+    if (data.errors && data.errors.length > 0) {
+      statusArea.innerHTML = `<p class="error">${data.errors.join("<br>")}</p>`;
+    }
+    if (data.filtered_by_airline) {
+      filterNote.style.display = "block";
+      filterNote.textContent = `✈️ Showing only ${data.filtered_by_airline} flights. Switch back to "Any airline" to see all options.`;
+    }
+    updateTokenTracker(data.session_stats);
+
+    document.getElementById("outboundHeading").style.display = "block";
+    document.getElementById("outboundHeading").textContent = `Outbound: ${currentOrigin} → ${currentDestination}`;
+
+    if (isRoundTrip) {
+      const returnDates = dateRange(return_start_date, return_end_date);
+      await runAgentAnimation(returnDates, currentOrigin);
+      const returnRes = await fetch("/api/plan-trip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          origin: destination, destination: origin,
+          start_date: return_start_date, end_date: return_end_date,
+          preferred_airline
+        })
+      });
+      if (returnRes.status === 401) { window.location.href = "/login.html"; return; }
+      const returnData = await returnRes.json();
+      tripDataReturn = returnData.comparison;
+      document.getElementById("returnHeading").style.display = "block";
+      document.getElementById("returnHeading").textContent = `Return: ${currentDestination} → ${currentOrigin}`;
+    } else {
+      tripDataReturn = null;
+    }
+
+    document.getElementById("agentLog").style.display = "none";
+    document.getElementById("sliderSection").style.display = "block";
+    recomputeBest();
+  } catch (err) {
+    statusArea.innerHTML = `<p class="error">Something went wrong: ${err}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Find Flights";
+  }
+}
+
+function recomputeBest() {
+  const sliderVal = parseInt(document.getElementById("weightSlider").value);
+  const label = document.getElementById("sliderLabel");
+  if (sliderVal < 35) label.textContent = "Cheaper";
+  else if (sliderVal > 65) label.textContent = "Safer";
+  else label.textContent = "Balanced";
+
+  const riskWeight = 100 + (sliderVal / 100) * 700;
+
+  function pickBest(data) {
+    let best = null, bestScore = Infinity;
+    for (const row of data || []) {
+      if (row.cheapest_price == null) continue;
+      const score = row.risk_score * riskWeight + row.cheapest_price;
+      if (score < bestScore) { bestScore = score; best = row.date; }
+    }
+    return best;
+  }
+
+  if (tripDataOutbound) renderCards(tripDataOutbound, pickBest(tripDataOutbound), "outboundCards");
+  if (tripDataReturn) renderCards(tripDataReturn, pickBest(tripDataReturn), "returnCards");
+}
+
+function riskClass(score) {
+  if (score <= 3) return "risk-low";
+  if (score <= 6) return "risk-mid";
+  return "risk-high";
+}
+
+function renderCards(data, bestDate, containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+
+  for (const row of data) {
+    const hasFlights = row.flights && row.flights.length > 0;
+    const card = document.createElement("div");
+    card.className = "date-card" + (row.date === bestDate ? " best" : "") + (!hasFlights ? " no-flights" : "");
+
+    const flightsHtml = hasFlights ? row.flights.map(f => `
+      <div class="flight-row">
+        <div class="flight-info">
+          <span class="flight-airline">${f.airline}</span>
+          <span class="flight-meta">${f.departure_time} · ${f.duration_hours}h</span>
+        </div>
+        <div class="flight-right">
+          <span class="flight-price">₹${f.price}</span>
+          <button class="book-btn" onclick='bookFlight(event, "${row.date}", ${JSON.stringify(f).replace(/'/g, "&#39;")})'>Book</button>
+        </div>
+      </div>
+    `).join("") : `<div class="no-flights-msg">No flights found for the selected airline on this date.</div>`;
+
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="date-label">${row.date} ${row.date === bestDate ? '<span class="badge">BEST PICK</span>' : ''}
+          ${(row.weather_from_cache || row.price_from_cache) ? '<span class="cache-tag">⚡ cached</span>' : ''}
+        </span>
+        <span class="risk-pill ${riskClass(row.risk_score)}">Risk ${row.risk_score}/10</span>
+      </div>
+      <div class="card-summary">
+        <span>🌧️ ${row.rainfall_mm}mm</span>
+        <span>💨 ${row.wind_speed_kmph}km/h</span>
+        <span>🌡️ ${row.temperature_c}°C</span>
+        <span>💰 ${row.cheapest_price != null ? '₹' + row.cheapest_price : 'N/A'}</span>
+      </div>
+      <div class="card-details">
+        ${flightsHtml}
+        ${hasFlights ? `<button class="explain-btn" onclick="explainDate(event, '${row.date}', ${row.risk_score}, ${row.rainfall_mm}, ${row.cheapest_price}, '${row.flights[0]?.airline || ''}')">🤖 Explain this date</button>
+        <div class="explanation-box" style="display:none" id="explain-${containerId}-${row.date}"></div>` : ''}
+      </div>
+    `;
+
+    card.addEventListener("click", () => card.classList.toggle("expanded"));
+    container.appendChild(card);
+  }
+}
+
+async function bookFlight(event, date, flight) {
+  event.stopPropagation();
+  try {
+    const res = await fetch("/api/book-flight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        origin: currentOrigin, destination: currentDestination, date: date,
+        airline: flight.airline, price: flight.price, departure_time: flight.departure_time
+      })
+    });
+    if (res.status === 401) { window.location.href = "/login.html"; return; }
+    const data = await res.json();
+    showBookingModal(data);
+  } catch (err) {
+    alert("Booking failed: " + err);
+  }
+}
+
+function showBookingModal(data) {
+  document.getElementById("modalRoute").textContent = `${data.origin} → ${data.destination} · ${data.date}`;
+  document.getElementById("modalFlightInfo").textContent = `${data.airline} · ${data.departure_time} · ₹${data.price}`;
+  document.getElementById("modalRef").textContent = data.booking_reference;
+  document.getElementById("bookingModal").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("bookingModal").classList.remove("show");
+}
+
+async function openBookings() {
+  const modal = document.getElementById("bookingsModal");
+  const list = document.getElementById("bookingsList");
+  list.innerHTML = `<p class="empty-msg">Loading...</p>`;
+  modal.classList.add("show");
+
+  try {
+    const res = await fetch("/api/my-bookings");
+    if (res.status === 401) { window.location.href = "/login.html"; return; }
+    const data = await res.json();
+
+    if (!data.bookings || data.bookings.length === 0) {
+      list.innerHTML = `<p class="empty-msg">No bookings yet. Book a flight to see it here.</p>`;
+      return;
+    }
+
+    list.innerHTML = data.bookings.map(b => `
+      <div class="booking-item">
+        <div><strong>${b.origin} → ${b.destination}</strong> · ${b.date}</div>
+        <div>${b.airline} · ${b.departure_time} · ₹${b.price}</div>
+        <div class="ref">${b.booking_reference}</div>
+      </div>
+    `).join("");
+  } catch (err) {
+    list.innerHTML = `<p class="error">Failed to load bookings: ${err}</p>`;
+  }
+}
+
+function closeBookings() {
+  document.getElementById("bookingsModal").classList.remove("show");
+}
+
+async function explainDate(event, date, risk_score, rainfall_mm, cheapest_price, airline) {
+  event.stopPropagation();
+  const containerId = event.target.closest(".date-card").parentElement.id;
+  const box = document.getElementById("explain-" + containerId + "-" + date);
+  box.style.display = "block";
+  box.textContent = "Thinking...";
+
+  try {
+    const res = await fetch("/api/explain-date", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ origin: currentOrigin, destination: currentDestination, date, risk_score, rainfall_mm, cheapest_price, airline })
+    });
+    if (res.status === 401) { window.location.href = "/login.html"; return; }
+    const data = await res.json();
+    box.textContent = data.explanation;
+    updateTokenTracker(data.session_stats);
+  } catch (err) {
+    box.textContent = "Failed to get explanation: " + err;
+  }
+}
+
+async function logout() {
+  await fetch("/api/logout", { method: "POST" });
+  window.location.href = "/login.html";
+}
+
+function updateTokenTracker(stats) {
+  if (!stats) return;
+  document.getElementById("tokenTracker").style.display = "flex";
+  document.getElementById("tokenCount").textContent = stats.total_tokens;
+  document.getElementById("callCount").textContent = stats.gemini_calls;
+}
+
+renderRecentSearches();
+</script>
+</body>
+</html>

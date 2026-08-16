@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login — Flight Booking Assistant</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0f1115;
+    color: #e6e6e6;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-box {
+    background: #1a1d24;
+    border: 1px solid #2a2e37;
+    border-radius: 14px;
+    padding: 36px;
+    width: 100%;
+    max-width: 340px;
+  }
+  .login-box h1 { font-size: 20px; margin: 0 0 4px 0; text-align: center; }
+  .login-box p.subtitle { color: #9ca3af; font-size: 13px; text-align: center; margin: 0 0 24px 0; }
+  label { font-size: 13px; color: #9ca3af; display: block; margin-bottom: 6px; }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    background: #0f1115;
+    border: 1px solid #2a2e37;
+    border-radius: 8px;
+    color: #e6e6e6;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: #4338ca; }
+  button:disabled { background: #374151; cursor: not-allowed; }
+  .error { color: #f87171; font-size: 13px; margin-top: 10px; text-align: center; display: none; }
+  .hint { color: #4b5563; font-size: 11px; text-align: center; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>✈️ Flight Booking Assistant</h1>
+  <p class="subtitle">Sign in to continue</p>
+
+  <label>Username</label>
+  <input id="username" type="text" placeholder="admin" />
+
+  <label>Password</label>
+  <input id="password" type="password" placeholder="••••••••" />
+
+  <button id="loginBtn" onclick="login()">Log In</button>
+  <p class="error" id="errorMsg">Invalid username or password</p>
+
+  <p class="hint">Demo credentials: admin / flight123</p>
+</div>
+
+<script>
+async function login() {
+  const btn = document.getElementById("loginBtn");
+  const errorMsg = document.getElementById("errorMsg");
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+
+  errorMsg.style.display = "none";
+  btn.disabled = true;
+  btn.textContent = "Signing in...";
+
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) {
+      window.location.href = "/";
+    } else {
+      errorMsg.style.display = "block";
+    }
+  } catch (err) {
+    errorMsg.textContent = "Something went wrong: " + err;
+    errorMsg.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Log In";
+  }
+}
+
+document.getElementById("password").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") login();
+});
+</script>
+</body>
+</html>
